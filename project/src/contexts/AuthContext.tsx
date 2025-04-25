@@ -10,7 +10,7 @@ import {
   updateEmail
 } from 'firebase/auth';
 import { auth, db } from '../config/firebase'; // Import db
-import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'; // Import Firestore functions
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; // Import Firestore functions
 
 // Define user type
 export type User = {
@@ -21,6 +21,7 @@ export type User = {
   bio?: string;
   avatar?: string;
   createdAt?: any; // Add timestamp if needed
+  savedArticles?: string[]; // Array of saved article IDs
 };
 
 // Auth state type
@@ -38,6 +39,8 @@ type AuthContextType = AuthState & {
   forgotPassword: (email: string) => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  saveArticle: (articleId: string) => Promise<void>;
+  unsaveArticle: (articleId: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,8 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    setState(prev => ({ ...prev, isLoading: true })); // Start loading on mount
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => { // Make async
+    setState(prev => ({ ...prev, isLoading: true }));
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         // Fetch additional data from Firestore
         const userDocRef = doc(db, 'users', firebaseUser.uid);
@@ -66,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           avatar: firestoreData.avatar || firebaseUser.photoURL || '', // Prioritize Firestore avatar
           bio: firestoreData.bio || '',
           createdAt: firestoreData.createdAt, // Get timestamp if stored
+          savedArticles: firestoreData.savedArticles || [], // Initialize savedArticles
         };
         setState({
           user,
@@ -230,6 +234,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const saveArticle = async (articleId: string) => {
+    if (!state.user) throw new Error("User not logged in");
+    const userDocRef = doc(db, 'users', state.user.id);
+    try {
+      await updateDoc(userDocRef, {
+        savedArticles: arrayUnion(articleId) // Add ID to the array
+      });
+      // Update local state
+      setState(prev => ({
+        ...prev,
+        user: prev.user ? { ...prev.user, savedArticles: [...(prev.user.savedArticles || []), articleId] } : null
+      }));
+    } catch (error) {
+      console.error("Error saving article:", error);
+      throw error; // Re-throw to handle in component
+    }
+  };
+
+  const unsaveArticle = async (articleId: string) => {
+    if (!state.user) throw new Error("User not logged in");
+    const userDocRef = doc(db, 'users', state.user.id);
+    try {
+      await updateDoc(userDocRef, {
+        savedArticles: arrayRemove(articleId) // Remove ID from the array
+      });
+      // Update local state
+      setState(prev => ({
+        ...prev,
+        user: prev.user ? { ...prev.user, savedArticles: (prev.user.savedArticles || []).filter(id => id !== articleId) } : null
+      }));
+    } catch (error) {
+      console.error("Error unsaving article:", error);
+      throw error; // Re-throw to handle in component
+    }
+  };
+
   const value = {
     ...state,
     login,
@@ -238,6 +278,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     forgotPassword,
     updateProfile: updateUserProfile,
     changePassword,
+    saveArticle,
+    unsaveArticle,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -7,7 +7,7 @@
             "author": {
                 "id": "1",
                 "name": "John Doe",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Senior Python Developer | AI Expert | Technical Writer"
             },
             "date": "2023-09-01",
@@ -15,8 +15,11 @@
             "category": "Technology",
             "content": "Artificial Intelligence (AI) is no longer a concept of the future; it is a reality that is transforming industries across the globe. From automating mundane tasks to enabling complex decision-making processes, AI is revolutionizing the way businesses operate. In healthcare, AI-powered tools are assisting doctors in diagnosing diseases with greater accuracy, while in finance, algorithms are optimizing investment strategies. The potential of AI extends to education, where personalized learning experiences are being created, and to transportation, where autonomous vehicles are becoming a reality. However, the rise of AI also brings challenges, such as ethical concerns, job displacement, and the need for robust regulations. As we embrace this technology, it is crucial to address these challenges to ensure that AI benefits society as a whole.",
             "tags": [
-                "Python",
-                "Artificial Intelligence"
+                "Artificial Intelligence",
+                "AI",
+                "Technology",
+                "Automation",
+                "Machine Learning"
             ],
             "image": "https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -27,7 +30,7 @@
             "author": {
                 "id": "2",
                 "name": "Jane Smith",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Senior Frontend Developer | React Expert | Technical Writer"
             },
             "date": "2023-08-15",
@@ -38,7 +41,10 @@
                 "React",
                 "JavaScript",
                 "Web Development",
-                "Frontend"
+                "Frontend",
+                "Angular",
+                "Vue",
+                "Frameworks"
             ],
             "image": "https://images.pexels.com/photos/270348/pexels-photo-270348.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -49,7 +55,7 @@
             "author": {
                 "id": "3",
                 "name": "Emily Johnson",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Economist | Tax Specialist | Technical Writer"
             },
             "date": "2023-07-10",
@@ -57,8 +63,11 @@
             "category": "Finance",
             "content": "Personal finance is a critical skill that everyone should master to achieve financial stability and independence. It begins with creating a budget that tracks your income and expenses, allowing you to identify areas where you can save. Building an emergency fund is another essential step, providing a financial cushion for unexpected expenses. Investing is a powerful tool for growing your wealth, whether through stocks, bonds, or real estate. Understanding the basics of compound interest and diversification can help you make informed investment decisions. Additionally, managing debt effectively, such as paying off high-interest loans first, can save you money in the long run. This article provides practical tips and strategies to help you take control of your finances and secure a brighter financial future.",
             "tags": [
-                "Economics",
-                "Tax"
+                "Finance",
+                "Budgeting",
+                "Investing",
+                "Saving",
+                "Debt Management"
             ],
             "image": "https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -69,7 +78,7 @@
             "author": {
                 "id": "4",
                 "name": "Michael Brown",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Environmentalist | Technical Writer"
             },
             "date": "2023-06-20",
@@ -77,10 +86,11 @@
             "category": "Environment",
             "content": "Renewable energy sources like solar, wind, and hydro are paving the way for a sustainable future. Discover the latest advancements and their impact on the environment.",
             "tags": [
-                "React",
-                "JavaScript",
-                "Web Development",
-                "Frontend"
+                "Renewable Energy",
+                "Sustainability",
+                "Environment",
+                "Solar Power",
+                "Wind Power"
             ],
             "image": "https://images.pexels.com/photos/433308/pexels-photo-433308.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -91,7 +101,7 @@
             "author": {
                 "id": "5",
                 "name": "Sarah Wilson",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/1065084/pexels-photo-1065084.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Senior Frontend Developer | React Expert | Technical Writer"
             },
             "date": "2023-05-05",
@@ -99,7 +109,10 @@
             "category": "Business",
             "content": "Leadership is about inspiring and guiding teams to achieve goals. Explore the traits and strategies that make leaders effective in the business world.",
             "tags": [
-                "Business"
+                "Business",
+                "Leadership",
+                "Management",
+                "Teamwork"
             ],
             "image": "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -110,7 +123,7 @@
             "author": {
                 "id": "6",
                 "name": "David Lee",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Marketing Specialist | Buisiness Analyst | Technical Writer"
             },
             "date": "2023-04-15",
@@ -118,7 +131,10 @@
             "category": "Marketing",
             "content": "Marketing success lies in understanding consumer behavior. Learn how psychology influences purchasing decisions and how to apply it to your strategies.",
             "tags": [
-                "Marketing"
+                "Marketing",
+                "Psychology",
+                "Consumer Behavior",
+                "Advertising"
             ],
             "image": "https://images.pexels.com/photos/6476587/pexels-photo-6476587.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -129,7 +145,7 @@
             "author": {
                 "id": "7",
                 "name": "Anna Green",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Environmentalist | Technical Writer"
             },
             "date": "2023-03-01",
@@ -139,7 +155,9 @@
             "tags": [
                 "Climate Change",
                 "Environment",
-                "Sustainability"
+                "Sustainability",
+                "Global Warming",
+                "Ecosystems"
             ],
             "image": "https://images.pexels.com/photos/113335/pexels-photo-113335.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -150,7 +168,7 @@
             "author": {
                 "id": "8",
                 "name": "Robert White",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/846741/pexels-photo-846741.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Marketing Specialist | Technical Writer"
             },
             "date": "2023-02-10",
@@ -160,8 +178,9 @@
             "tags": [
                 "Finance",
                 "Investment",
-                "Stock Marketing",
-                "TRading"
+                "Stock Market",
+                "Trading",
+                "Wealth Building"
             ],
             "image": "https://images.pexels.com/photos/7567560/pexels-photo-7567560.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -172,7 +191,7 @@
             "author": {
                 "id": "9",
                 "name": "Laura Black",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Senior Frontend Developer | React Expert | Technical Writer"
             },
             "date": "2023-01-20",
@@ -181,7 +200,10 @@
             "content": "E-commerce has transformed shopping and business operations. Explore its evolution, current trends, and future possibilities.",
             "tags": [
                 "Business",
-                "E-commerce"
+                "E-commerce",
+                "Online Shopping",
+                "Retail",
+                "Digital Business"
             ],
             "image": "https://images.pexels.com/photos/3944405/pexels-photo-3944405.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         },
@@ -192,7 +214,7 @@
             "author": {
                 "id": "10",
                 "name": "Chris Blue",
-                "avatar": "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                "avatar": "https://images.pexels.com/photos/834863/pexels-photo-834863.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
                 "bio": "Senior Frontend Developer | React Expert | Technical Writer"
             },
             "date": "2022-12-01",
@@ -202,7 +224,10 @@
             "tags": [
                 "Technology",
                 "Data Science",
-                "Healthcare"
+                "Healthcare",
+                "Medical Technology",
+                "Patient Outcomes",
+                "Analytics"
             ],
             "image": "https://images.pexels.com/photos/5452293/pexels-photo-5452293.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
         }

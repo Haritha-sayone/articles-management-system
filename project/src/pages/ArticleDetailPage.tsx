@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ArrowLeft, ThumbsUp, MessageSquare, Share2, Bookmark, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Bookmark, Loader2, AlertTriangle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
+import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext'; // Import useAuth
 
 // Define detailed Article type
 interface Author {
@@ -29,10 +31,14 @@ interface Article {
 
 const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user, saveArticle, unsaveArticle } = useAuth(); // Get user and methods from context
   const [article, setArticle] = useState<Article | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([]); // State for related articles
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false); // Keep local loading state for button
+
+  const isSaved = !!id && !!user?.savedArticles?.includes(id); // Determine saved status from context
 
   useEffect(() => {
     const fetchArticleData = async () => {
@@ -63,10 +69,7 @@ const ArticleDetailPage: React.FC = () => {
         setArticle(currentArticleData);
 
         // Handle all articles response
-        if (!allArticlesResponse.ok) {
-          console.error(`HTTP error fetching all articles! status: ${allArticlesResponse.status}`);
-          // Don't throw an error here, related articles are secondary
-        } else {
+        if (allArticlesResponse.ok) {
           const allArticlesData: Article[] = await allArticlesResponse.json();
 
           // Filter related articles (run this logic after setting the current article)
@@ -74,11 +77,14 @@ const ArticleDetailPage: React.FC = () => {
             const related = allArticlesData
               .filter(otherArticle =>
                 otherArticle.id !== currentArticleData.id && // Exclude current article
-                otherArticle.tags.some(tag => currentArticleData.tags.includes(tag)) // Check for shared tags
+                otherArticle.tags?.some(tag => currentArticleData.tags!.includes(tag)) // Check for shared tags
               )
               .slice(0, 2); // Limit to 2 related articles
             setRelatedArticles(related);
           }
+        } else {
+          console.error(`HTTP error fetching all articles! status: ${allArticlesResponse.status}`);
+          // Don't throw an error here, related articles are secondary
         }
 
       } catch (e: any) {
@@ -92,6 +98,27 @@ const ArticleDetailPage: React.FC = () => {
 
     fetchArticleData();
   }, [id]);
+
+  // Function to handle saving/unsaving
+  const handleSaveToggle = async () => {
+    if (!article || !id) return; // Check for id as well
+    setIsSaving(true);
+
+    try {
+      if (isSaved) {
+        await unsaveArticle(id); // Use context method
+        toast.success("Article removed from saved list.");
+      } else {
+        await saveArticle(id); // Use context method
+        toast.success("Article saved successfully!");
+      }
+    } catch (err: any) {
+      console.error("Save/Unsave error:", err);
+      toast.error(err.message || "Could not update saved status. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Handle loading state
   if (isLoading) {
@@ -209,11 +236,13 @@ const ArticleDetailPage: React.FC = () => {
                 </div>
 
                 <Button
-                  variant="outline"
+                  variant={isSaved ? "primary" : "outline"}
                   icon={<Bookmark className="h-4 w-4" />}
                   className="flex-shrink-0" // Prevent button shrinking on small screens
+                  onClick={handleSaveToggle} // Attach click handler
+                  isLoading={isSaving} // Pass loading state to button
                 >
-                  Save
+                  {isSaved ? "Saved" : "Save"}
                 </Button>
               </div>
 
@@ -223,31 +252,6 @@ const ArticleDetailPage: React.FC = () => {
                 {article.content.split('\n\n').map((paragraph, index) => ( // Split by double newline for paragraphs
                   paragraph.trim() && <p key={index} className="mb-4">{paragraph}</p>
                 ))}
-              </div>
-
-              {/* Article actions */}
-              <div className="flex items-center justify-between mt-8 pt-8 border-t border-gray-200">
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant="outline"
-                    icon={<ThumbsUp className="h-4 w-4" />}
-                  >
-                    {article.likes}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    icon={<MessageSquare className="h-4 w-4" />}
-                  >
-                    {article.comments}
-                  </Button>
-                </div>
-
-                <Button
-                  variant="outline"
-                  icon={<Share2 className="h-4 w-4" />}
-                >
-                  Share
-                </Button>
               </div>
             </div>
           </div>
@@ -266,13 +270,6 @@ const ArticleDetailPage: React.FC = () => {
                 <div>
                   <h3 className="font-medium text-gray-900">{authorDetails.name}</h3>
                   <p className="mt-1 text-gray-600">{authorDetails.bio}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-4"
-                  >
-                    Follow
-                  </Button>
                 </div>
               </div>
             </div>
@@ -301,7 +298,7 @@ const ArticleDetailPage: React.FC = () => {
                           {related.title}
                         </h3>
                         {related.excerpt && ( // Display excerpt if available
-                           <p className="mt-1 text-sm text-gray-600 line-clamp-2">{related.excerpt}</p>
+                          <p className="mt-1 text-sm text-gray-600 line-clamp-2">{related.excerpt}</p>
                         )}
                         <div className="mt-4 flex items-center text-sm text-gray-500">
                           <span>{relatedAuthorName}</span>
