@@ -167,9 +167,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       // Only update photoURL if it's not a long data URL
       if (data.avatar !== undefined && !data.avatar.startsWith('data:')) {
-         authUpdateData.photoURL = data.avatar || null;
+        authUpdateData.photoURL = data.avatar || null;
       } else if (data.avatar === '') { // Allow clearing the photoURL
-         authUpdateData.photoURL = null;
+        authUpdateData.photoURL = null;
       }
 
 
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.bio !== undefined) firestoreUpdateData.bio = data.bio;
       if (data.avatar !== undefined) firestoreUpdateData.avatar = data.avatar; // Always update Firestore avatar
       if (data.email !== undefined && data.email !== currentUser.email) {
-         firestoreUpdateData.email = data.email; // Update email in Firestore too
+        firestoreUpdateData.email = data.email; // Update email in Firestore too
       }
 
       // Perform updates concurrently
@@ -221,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const user = auth.currentUser;
       if (!user) throw new Error('No user logged in');
-      
+
       await updatePassword(user, newPassword);
       setState((prev) => ({ ...prev, isLoading: false }));
     } catch (error) {
