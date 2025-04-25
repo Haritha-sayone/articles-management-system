@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, UserCircle, LogOut, ChevronDown, X, Menu as MenuIcon, MessageSquare } from 'lucide-react';
+import { BookOpen, UserCircle, LogOut, ChevronDown, X, Menu as MenuIcon, MessageSquare, Bookmark } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Dropdown, { DropdownItem } from '../ui/Dropdown';
 import Avatar from '../ui/Avatar';
@@ -25,6 +25,7 @@ const Header: React.FC = () => {
   const navItems = [
     { label: 'Home', path: '/' },
     { label: 'Articles', path: '/articles' },
+    { label: 'Saved', path: '/saved-articles', icon: <Bookmark className="h-4 w-4" /> },
     { label: 'Chat', path: '/chat', icon: <MessageSquare className="h-4 w-4" /> },
   ];
 
