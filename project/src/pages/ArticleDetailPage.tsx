@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react'; // Import memo, useCallback
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ArrowLeft, Bookmark, Loader2, AlertTriangle } from 'lucide-react';
@@ -31,14 +31,14 @@ interface Article {
 
 const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user, saveArticle, unsaveArticle } = useAuth(); // Get user and methods from context
+  const { user, saveArticle, unsaveArticle } = useAuth();
   const [article, setArticle] = useState<Article | null>(null);
-  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]); // State for related articles
+  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false); // Keep local loading state for button
+  const [isSaving, setIsSaving] = useState(false);
 
-  const isSaved = !!id && !!user?.savedArticles?.includes(id); // Determine saved status from context
+  const isSaved = !!id && !!user?.savedArticles?.includes(id);
 
   useEffect(() => {
     const fetchArticleData = async () => {
@@ -100,16 +100,16 @@ const ArticleDetailPage: React.FC = () => {
   }, [id]);
 
   // Function to handle saving/unsaving
-  const handleSaveToggle = async () => {
-    if (!article || !id) return; // Check for id as well
+  const handleSaveToggle = useCallback(async () => { // Wrap with useCallback
+    if (!article || !id) return;
     setIsSaving(true);
 
     try {
       if (isSaved) {
-        await unsaveArticle(id); // Use context method
+        await unsaveArticle(id);
         toast.success("Article removed from saved list.");
       } else {
-        await saveArticle(id); // Use context method
+        await saveArticle(id);
         toast.success("Article saved successfully!");
       }
     } catch (err: any) {
@@ -118,7 +118,7 @@ const ArticleDetailPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [article, id, isSaved, saveArticle, unsaveArticle]); // Add dependencies
 
   // Handle loading state
   if (isLoading) {
@@ -238,9 +238,9 @@ const ArticleDetailPage: React.FC = () => {
                 <Button
                   variant={isSaved ? "primary" : "outline"}
                   icon={<Bookmark className="h-4 w-4" />}
-                  className="flex-shrink-0" // Prevent button shrinking on small screens
-                  onClick={handleSaveToggle} // Attach click handler
-                  isLoading={isSaving} // Pass loading state to button
+                  className="flex-shrink-0"
+                  onClick={handleSaveToggle} // Use memoized callback
+                  isLoading={isSaving}
                 >
                   {isSaved ? "Saved" : "Save"}
                 </Button>
@@ -318,4 +318,4 @@ const ArticleDetailPage: React.FC = () => {
   );
 };
 
-export default ArticleDetailPage;
+export default memo(ArticleDetailPage); // Wrap export with memo

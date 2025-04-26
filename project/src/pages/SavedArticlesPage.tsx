@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react'; // Import memo, useCallback
 import { Link } from 'react-router-dom';
 import { Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -98,13 +98,13 @@ const SavedArticlesPage: React.FC = () => {
 
     }, [user?.id, savedArticlesString]);
 
-    const handleUnsave = async (articleId: string) => {
+    const handleUnsave = useCallback(async (articleId: string) => { // Wrap with useCallback
         // Optimistic UI update
         const originalArticles = [...savedArticlesDetails];
         setSavedArticlesDetails(prev => prev.filter(article => article.id !== articleId));
 
         try {
-            await unsaveArticle(articleId); // Use context method
+            await unsaveArticle(articleId);
             toast.success('Article removed successfully.');
         } catch (err: any) {
             console.error("Unsave error:", err);
@@ -112,7 +112,7 @@ const SavedArticlesPage: React.FC = () => {
             // Rollback optimistic update
             setSavedArticlesDetails(originalArticles);
         }
-    };
+    }, [unsaveArticle, savedArticlesDetails]); // Add dependencies
 
     // Show loading indicator ONLY while fetching, not while auth is loading initially
     // The initial auth loading state is handled implicitly by user being null/undefined initially
@@ -153,12 +153,12 @@ const SavedArticlesPage: React.FC = () => {
                                         variant="ghost"
                                         size="sm"
                                         className="absolute top-2 right-2 text-gray-400 hover:text-red-500 hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                        onClick={() => handleUnsave(article.id)} // Pass article ID
+                                        onClick={() => handleUnsave(article.id)} // Use memoized callback
                                         aria-label="Remove from saved"
                                     >
                                         <Trash2 className="h-5 w-5" />
                                     </Button>
-                                    {/* ... rest of the article card rendering using 'article' object ... */}
+                                    {/* ... rest of the article card rendering ... */}
                                     <div className="md:flex-shrink-0">
                                         <img
                                             className="h-48 w-full object-cover md:w-48"
@@ -206,4 +206,4 @@ const SavedArticlesPage: React.FC = () => {
     );
 };
 
-export default SavedArticlesPage;
+export default memo(SavedArticlesPage); // Wrap export with memo

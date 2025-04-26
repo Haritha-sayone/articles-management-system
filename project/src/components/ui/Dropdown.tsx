@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, memo } from 'react';
 
 type DropdownProps = {
   trigger: React.ReactNode;
@@ -7,7 +7,7 @@ type DropdownProps = {
   className?: string;
 };
 
-const Dropdown: React.FC<DropdownProps> = ({
+const Dropdown: React.FC<DropdownProps> = memo(({
   trigger,
   children,
   align = 'right',
@@ -55,7 +55,9 @@ const Dropdown: React.FC<DropdownProps> = ({
       )}
     </div>
   );
-};
+});
+
+Dropdown.displayName = 'Dropdown';
 
 export const DropdownItem: React.FC<{
   children: React.ReactNode;
@@ -64,7 +66,7 @@ export const DropdownItem: React.FC<{
   danger?: boolean;
   disabled?: boolean;
   className?: string;
-}> = ({ children, onClick, icon, danger = false, disabled = false, className = '' }) => {
+}> = memo(({ children, onClick, icon, danger = false, disabled = false, className = '' }) => {
   return (
     <button
       className={`
@@ -80,6 +82,8 @@ export const DropdownItem: React.FC<{
       {children}
     </button>
   );
-};
+});
+
+DropdownItem.displayName = 'DropdownItem';
 
 export default Dropdown;

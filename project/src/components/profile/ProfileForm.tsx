@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react'; // Import memo, useCallback
 import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth, User } from '../../contexts/AuthContext';
@@ -61,46 +61,51 @@ const ProfileForm: React.FC = () => {
   }, [user]);
 
   // Form submission handler for Formik
-  const handleFormikSubmit = async (
-    values: ProfileFormValues,
-    { setSubmitting }: FormikHelpers<ProfileFormValues>
-  ) => {
-    try {
-      const profileData: Partial<User> = {
-        name: values.name,
-        email: values.email,
-        username: values.username,
-        bio: values.bio,
-        avatar: values.avatar, // Avatar value comes from Formik state
-      };
-      await updateProfile(profileData);
-      toast.success('Profile updated successfully');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update profile');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const handleFormikSubmit = useCallback( // Wrap with useCallback
+    async (
+      values: ProfileFormValues,
+      { setSubmitting }: FormikHelpers<ProfileFormValues>
+    ) => {
+      try {
+        const profileData: Partial<User> = {
+          name: values.name,
+          email: values.email,
+          username: values.username,
+          bio: values.bio,
+          avatar: values.avatar,
+        };
+        await updateProfile(profileData);
+        toast.success('Profile updated successfully');
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to update profile');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [updateProfile] // Add dependency
+  );
 
   // Avatar change handler updates Formik state
-  const handleAvatarChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('File size exceeds 2MB limit.');
-        return;
+  const handleAvatarChange = useCallback( // Wrap with useCallback
+    (
+      e: React.ChangeEvent<HTMLInputElement>,
+      setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void
+    ) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+          toast.error('File size exceeds 2MB limit.');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFieldValue('avatar', reader.result as string);
+        };
+        reader.readAsDataURL(file);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Update Formik's avatar field value
-        setFieldValue('avatar', reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    },
+    [] // No dependencies needed
+  );
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -111,18 +116,16 @@ const ProfileForm: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
       </div>
 
-      {/* Wrap form with Formik */}
       <Formik
         initialValues={initialValues}
         validationSchema={ProfileValidationSchema}
-        onSubmit={handleFormikSubmit}
-        enableReinitialize // Allows form to reinitialize when initialValues change (user loads)
+        onSubmit={handleFormikSubmit} // Use memoized callback
+        enableReinitialize
       >
         {({ errors, touched, isSubmitting, values, setFieldValue }) => (
           <Form className="space-y-6">
             {/* Avatar upload */}
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              {/* Use values.avatar from Formik state */}
               <Avatar src={values.avatar} alt={values.name} size="xl" />
 
               <div>
@@ -139,7 +142,7 @@ const ProfileForm: React.FC = () => {
                     type="file"
                     className="sr-only"
                     accept="image/*"
-                    // Pass setFieldValue to the handler
+                    // Pass memoized handler and setFieldValue
                     onChange={(e) => handleAvatarChange(e, setFieldValue)}
                   />
                 </label>
@@ -234,4 +237,4 @@ const ProfileForm: React.FC = () => {
   );
 };
 
-export default ProfileForm;
+export default memo(ProfileForm); // Wrap export with memo

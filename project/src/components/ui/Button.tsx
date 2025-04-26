@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Loader2 } from 'lucide-react';
 
 type ButtonProps = {
@@ -71,4 +71,4 @@ const Button: React.FC<ButtonProps> = ({
   );
 };
 
-export default Button;
+export default memo(Button);

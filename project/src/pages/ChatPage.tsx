@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Send, Paperclip, Smile, Wifi, WifiOff } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -36,16 +36,16 @@ const ChatPage: React.FC = () => {
   }, []);
 
   // Scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Mock AI response
-  const simulateAIResponse = async (userMessage: string) => {
+  const simulateAIResponse = useCallback(async (userMessageContent: string) => {
     setIsTyping(true);
     
     // Simulate API delay
@@ -69,19 +69,22 @@ const ChatPage: React.FC = () => {
     }]);
     
     setIsTyping(false);
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newMessage.trim() || isSending) return;
     
     setIsSending(true);
     
+    const userMessageContent = newMessage.trim();
+    const userMessageId = Date.now().toString();
+
     // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
-      content: newMessage.trim(),
+      id: userMessageId,
+      content: userMessageContent,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending'
@@ -94,19 +97,19 @@ const ChatPage: React.FC = () => {
       // Update message status to sent
       setMessages(prev => 
         prev.map(msg => 
-          msg.id === userMessage.id 
+          msg.id === userMessageId 
             ? { ...msg, status: 'sent' } 
             : msg
         )
       );
       
       // Get AI response
-      await simulateAIResponse(userMessage.content);
+      await simulateAIResponse(userMessageContent);
       
       // Update message status to delivered
       setMessages(prev => 
         prev.map(msg => 
-          msg.id === userMessage.id 
+          msg.id === userMessageId 
             ? { ...msg, status: 'delivered' } 
             : msg
         )
@@ -115,7 +118,7 @@ const ChatPage: React.FC = () => {
       // Handle error
       setMessages(prev => 
         prev.map(msg => 
-          msg.id === userMessage.id 
+          msg.id === userMessageId 
             ? { ...msg, status: 'error' } 
             : msg
         )
@@ -123,7 +126,7 @@ const ChatPage: React.FC = () => {
     } finally {
       setIsSending(false);
     }
-  };
+  }, [newMessage, isSending, simulateAIResponse]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">
@@ -266,4 +269,4 @@ const ChatPage: React.FC = () => {
   );
 };
 
-export default ChatPage;
+export default memo(ChatPage);

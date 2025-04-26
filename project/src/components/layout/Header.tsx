@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BookOpen, UserCircle, LogOut, ChevronDown, X, Menu as MenuIcon, MessageSquare, Bookmark } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,17 +10,18 @@ const Header: React.FC = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+  }, []);
 
-  const closeMenu = () => {
+  const closeMenu = useCallback(() => {
     setIsMenuOpen(false);
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
+    closeMenu();
     logout();
-  };
+  }, [logout, closeMenu]);
 
   const navItems = [
     { label: 'Home', path: '/' },
@@ -87,7 +88,7 @@ const Header: React.FC = () => {
                   </div>
                   <DropdownItem
                     icon={<UserCircle className="h-4 w-4" />}
-                    onClick={() => closeMenu()}
+                    onClick={closeMenu}
                   >
                     <Link to="/profile" className="w-full text-left">Profile</Link>
                   </DropdownItem>
@@ -164,4 +165,4 @@ const Header: React.FC = () => {
   );
 };
 
-export default Header;
+export default memo(Header);

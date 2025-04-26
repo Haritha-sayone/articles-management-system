@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 type AvatarProps = {
   src?: string;
@@ -59,4 +59,4 @@ const Avatar: React.FC<AvatarProps> = ({
   );
 };
 
-export default Avatar;
+export default memo(Avatar);
