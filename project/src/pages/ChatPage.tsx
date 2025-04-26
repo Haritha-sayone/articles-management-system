@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Send, Paperclip, Smile, Wifi, WifiOff } from 'lucide-react';
+import { Send, Wifi, WifiOff } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -47,19 +47,19 @@ const ChatPage: React.FC = () => {
   // Mock AI response
   const simulateAIResponse = useCallback(async (userMessageContent: string) => {
     setIsTyping(true);
-    
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     const responses = [
       "I understand what you're saying. Could you tell me more?",
       "That's interesting! Let me help you with that.",
       "I appreciate your perspective. Here's what I think...",
       "Thanks for sharing. Have you considered...",
     ];
-    
+
     const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    
+
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       content: randomResponse,
@@ -67,17 +67,17 @@ const ChatPage: React.FC = () => {
       timestamp: new Date(),
       status: 'delivered'
     }]);
-    
+
     setIsTyping(false);
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || isSending) return;
-    
+
     setIsSending(true);
-    
+
     const userMessageContent = newMessage.trim();
     const userMessageId = Date.now().toString();
 
@@ -89,37 +89,37 @@ const ChatPage: React.FC = () => {
       timestamp: new Date(),
       status: 'sending'
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setNewMessage('');
-    
+
     try {
       // Update message status to sent
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === userMessageId 
-            ? { ...msg, status: 'sent' } 
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === userMessageId
+            ? { ...msg, status: 'sent' }
             : msg
         )
       );
-      
+
       // Get AI response
       await simulateAIResponse(userMessageContent);
-      
+
       // Update message status to delivered
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === userMessageId 
-            ? { ...msg, status: 'delivered' } 
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === userMessageId
+            ? { ...msg, status: 'delivered' }
             : msg
         )
       );
     } catch (error) {
       // Handle error
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === userMessageId 
-            ? { ...msg, status: 'error' } 
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === userMessageId
+            ? { ...msg, status: 'error' }
             : msg
         )
       );
@@ -192,7 +192,7 @@ const ChatPage: React.FC = () => {
             </div>
           </div>
         ))}
-        
+
         {/* Typing indicator */}
         {isTyping && (
           <div className="flex justify-start">
@@ -205,33 +205,17 @@ const ChatPage: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Message input */}
       <div className="border-t border-gray-200 bg-white">
-        <form 
+        <form
           onSubmit={handleSubmit}
           className="container mx-auto max-w-4xl px-4 py-3"
         >
           <div className="flex items-end gap-3">
-            <button
-              type="button"
-              className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
-              aria-label="Add attachment"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
-            
-            <button
-              type="button"
-              className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
-              aria-label="Add emoji"
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-            
             <div className="flex-1 min-w-0">
               <TextareaAutosize
                 value={newMessage}
@@ -247,7 +231,7 @@ const ChatPage: React.FC = () => {
                 }}
               />
             </div>
-            
+
             <button
               type="submit"
               disabled={!newMessage.trim() || isSending}
