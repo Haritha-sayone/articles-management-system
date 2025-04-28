@@ -26,18 +26,10 @@ const ChatPage: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // --- Environment Variable Check (Optional but Recommended for Frontend Keys) ---
-  useEffect(() => {
-    const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY;
-    const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST;
-    const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-
-    if (!pineconeApiKey || !pineconeIndexHost || !googleApiKey) {
-      console.warn("Missing API keys (Pinecone, Pinecone Host, or Google) in environment variables. Chat functionality might be limited or fail.");
-      // Set an error only if essential keys are missing for core function
-      // setAiError("Chat service configuration is incomplete.");
-    }
-  }, []);
+  const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY;
+  const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST;
+  const googleApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const hfToken = import.meta.env.VITE_HUGGINGFACE_API_KEY;
 
   // ... existing online/offline handling ...
   // ... existing scrollToBottom ...
@@ -49,11 +41,6 @@ const ChatPage: React.FC = () => {
       console.log("Starting RAG process via HTTP API for:", userMessageContent);
 
       // 1. Initialize Embeddings and LLM
-      const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY!;
-      const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST!;
-      const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY!;
-      const hfToken = import.meta.env.VITE_HUGGINGFACE_API_KEY;
-
       if (!pineconeApiKey || !pineconeIndexHost || !googleApiKey) {
         throw new Error("API Keys or Pinecone Host URL missing.");
       }
@@ -70,7 +57,7 @@ const ChatPage: React.FC = () => {
 
       // 3. Query Pinecone via HTTP API
       console.log("Querying Pinecone via HTTP API...");
-      const queryUrl = `https://${pineconeIndexHost}/query`;
+      const queryUrl = `${pineconeIndexHost}/query`;
       const topK = 4; // Number of results to retrieve
 
       const queryResponse = await fetch(queryUrl, {

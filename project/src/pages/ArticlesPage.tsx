@@ -26,8 +26,7 @@ interface Article {
   category?: string; // Add category if needed
   tags?: string[]; // Add tags if needed
   readTime?: string; // Add readTime if needed
-  // Add full content if available and desired for embedding
-  // content?: string;
+  content?: string;
 }
 
 // Component to render a single article row in the virtual list
@@ -168,7 +167,7 @@ const ArticlesPage: React.FC = () => {
 
           // Prepare Documents (remains the same)
           const documents = data.map(article => new Document({
-            pageContent: `${article.title}\n${article.excerpt}`,
+            pageContent: `${article.title}\n${article.excerpt}\n${article.content}`,
             metadata: {
               // Pinecone metadata values must be string, number, boolean, or array of strings
               id: article.id,
