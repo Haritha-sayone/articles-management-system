@@ -76,7 +76,7 @@ const ArticleRow = memo(({ index, style, data }: { index: number; style: React.C
               </span>
             </div>
           </div>
-          
+
           <div className="mt-4">
             <Link
               to={`/articles/${article.id}`}
@@ -98,7 +98,7 @@ const ArticlesPage: React.FC = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false); // Renamed from isEmbedding
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     // --- Helper function for Pinecone HTTP Upsert ---
@@ -143,7 +143,7 @@ const ArticlesPage: React.FC = () => {
       setError(null);
       try {
         // 1. Fetch Articles
-        const response = await fetch('http://localhost:3001/articles');
+        const response = await fetch(`http://localhost:3001/articles`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: Article[] = await response.json();
         setArticles(data);
@@ -156,7 +156,7 @@ const ArticlesPage: React.FC = () => {
 
           const hfToken = import.meta.env.VITE_HUGGINGFACE_API_KEY;
           if (!import.meta.env.VITE_PINECONE_API_KEY || !import.meta.env.VITE_PINECONE_INDEX_HOST) {
-             throw new Error("Pinecone API Key or Index Host URL missing.");
+            throw new Error("Pinecone API Key or Index Host URL missing.");
           }
 
           // Initialize Embedding Model (Specify model with 1024 dimensions)
@@ -165,8 +165,9 @@ const ArticlesPage: React.FC = () => {
             model: 'sentence-transformers/all-roberta-large-v1' // Ensure this 1024-dim model is used
           });
 
-          // Prepare Documents (remains the same)
+          // Prepare Documents
           const documents = data.map(article => new Document({
+            // Embed the full content for better search relevance
             pageContent: `${article.title}\n${article.excerpt}\n${article.content}`,
             metadata: {
               // Pinecone metadata values must be string, number, boolean, or array of strings
@@ -174,18 +175,21 @@ const ArticlesPage: React.FC = () => {
               title: article.title,
               date: article.date,
               author: article.author.name,
-              excerpt: article.excerpt, // Include excerpt for potential display later
+              excerpt: article.excerpt,
+              content: article.content || "",
             },
           }));
 
           // Generate Embeddings (using LangChain helper)
           console.log(`Generating embeddings for ${documents.length} documents using ${embeddings.model}...`);
+          // Embed based on pageContent which now includes full content
           const vectorValues = await embeddings.embedDocuments(documents.map(doc => doc.pageContent));
 
           // Prepare vectors for Pinecone HTTP API
           const vectorsToUpsert = documents.map((doc, index) => ({
             id: doc.metadata.id as string, // Ensure ID is string
             values: vectorValues[index],
+            // Ensure the metadata being sent includes the 'content' field
             metadata: doc.metadata,
           }));
 
@@ -197,7 +201,7 @@ const ArticlesPage: React.FC = () => {
           localStorage.setItem('articlesEmbeddedHttp', 'true'); // Set flag
           setIsProcessing(false);
         } else if (embeddingDoneFlag) {
-            console.log("Embeddings already processed via HTTP (based on flag). Skipping.");
+          console.log("Embeddings already processed via HTTP (based on flag). Skipping.");
         }
 
       } catch (e: any) {

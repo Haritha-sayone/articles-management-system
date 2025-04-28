@@ -90,12 +90,13 @@ const ChatPage: React.FC = () => {
         ?.map((match: any, i: number) => {
           // Extract relevant info from metadata
           const title = match.metadata?.title || 'Unknown Title';
-          const content = match.metadata?.excerpt || match.metadata?.pageContent || 'No content available'; // Adjust based on upserted metadata
-          return `Article Snippet ${i + 1} (Title: ${title}):\n${content}`;
+          // *** PRIORITIZE FULL CONTENT FROM METADATA ***
+          const content = match.metadata?.content || match.metadata?.excerpt || 'No content available'; // Use full content if available, fallback to excerpt
+          return `Article Snippet ${i + 1} (Title: ${title}):\n${content}`; // Now includes full content
         })
         .join("\n\n") || "No relevant articles found."; // Provide fallback
 
-      console.log("Formatted Context:\n", context);
+      console.log("Formatted Context:\n", context); // This context will now be more detailed
 
       // 5. Construct Prompt for LLM
       const prompt = `You are an assistant knowledgeable about technology and development articles.
@@ -148,11 +149,11 @@ ${userMessageContent}`;
     }
     // Add user message to state immediately for better UX
     const userMsg: Message = {
-        id: Date.now().toString() + '-user',
-        content: newMessage,
-        sender: 'user',
-        timestamp: new Date(),
-        status: 'sending' // Show as sending initially
+      id: Date.now().toString() + '-user',
+      content: newMessage,
+      sender: 'user',
+      timestamp: new Date(),
+      status: 'sending' // Show as sending initially
     };
     setMessages(prev => [...prev, userMsg]);
     getAIResponse(newMessage); // Call the AI response function
