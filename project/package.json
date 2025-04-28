@@ -11,6 +11,12 @@
     "server": "json-server --watch db.json --port 3001"
   },
   "dependencies": {
+    "@huggingface/inference": "^2.8.1",
+    "@langchain/community": "^0.3.41",
+    "@langchain/core": "^0.3.49",
+    "@langchain/google-genai": "^0.2.5",
+    "@langchain/pinecone": "^0.2.0",
+    "@pinecone-database/pinecone": "^5.1.2",
     "date-fns": "^3.3.1",
     "firebase": "^10.8.0",
     "formik": "^2.4.5",

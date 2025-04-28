@@ -1,9 +1,13 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Send, Wifi, WifiOff } from 'lucide-react';
+import { Send, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useAuth } from '../contexts/AuthContext';
+// LangChain Embeddings and Google GenAI
+import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
+// ... existing Message type ...
 type Message = {
   id: string;
   content: string;
@@ -12,122 +16,142 @@ type Message = {
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'error';
 };
 
+
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
-  // Handle online/offline status
+  // --- Environment Variable Check (Optional but Recommended for Frontend Keys) ---
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY;
+    const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST;
+    const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Scroll to bottom when new messages arrive
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
-
-  // Mock AI response
-  const simulateAIResponse = useCallback(async (userMessageContent: string) => {
-    setIsTyping(true);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const responses = [
-      "I understand what you're saying. Could you tell me more?",
-      "That's interesting! Let me help you with that.",
-      "I appreciate your perspective. Here's what I think...",
-      "Thanks for sharing. Have you considered...",
-    ];
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      content: randomResponse,
-      sender: 'ai',
-      timestamp: new Date(),
-      status: 'delivered'
-    }]);
-
-    setIsTyping(false);
-  }, []);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newMessage.trim() || isSending) return;
-
-    setIsSending(true);
-
-    const userMessageContent = newMessage.trim();
-    const userMessageId = Date.now().toString();
-
-    // Add user message
-    const userMessage: Message = {
-      id: userMessageId,
-      content: userMessageContent,
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sending'
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
-
-    try {
-      // Update message status to sent
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === userMessageId
-            ? { ...msg, status: 'sent' }
-            : msg
-        )
-      );
-
-      // Get AI response
-      await simulateAIResponse(userMessageContent);
-
-      // Update message status to delivered
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === userMessageId
-            ? { ...msg, status: 'delivered' }
-            : msg
-        )
-      );
-    } catch (error) {
-      // Handle error
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === userMessageId
-            ? { ...msg, status: 'error' }
-            : msg
-        )
-      );
-    } finally {
-      setIsSending(false);
+    if (!pineconeApiKey || !pineconeIndexHost || !googleApiKey) {
+      console.warn("Missing API keys (Pinecone, Pinecone Host, or Google) in environment variables. Chat functionality might be limited or fail.");
+      // Set an error only if essential keys are missing for core function
+      // setAiError("Chat service configuration is incomplete.");
     }
-  }, [newMessage, isSending, simulateAIResponse]);
+  }, []);
 
+  // ... existing online/offline handling ...
+  // ... existing scrollToBottom ...
+
+  // --- RAG Logic using HTTP API ---
+  const getAIResponse = useCallback(async (userMessageContent: string) => {
+    setAiError(null);
+    try {
+      console.log("Starting RAG process via HTTP API for:", userMessageContent);
+
+      // 1. Initialize Embeddings and LLM
+      const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY!;
+      const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST!;
+      const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY!;
+      const hfToken = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+
+      if (!pineconeApiKey || !pineconeIndexHost || !googleApiKey) {
+        throw new Error("API Keys or Pinecone Host URL missing.");
+      }
+
+      const embeddings = new HuggingFaceInferenceEmbeddings({
+        apiKey: hfToken,
+        model: 'sentence-transformers/all-roberta-large-v1' // Ensure this 1024-dim model is used
+      });
+      const llm = new ChatGoogleGenerativeAI({ apiKey: googleApiKey, model: "chat-bison" }); // Specify a valid model name
+
+      // 2. Embed the user query
+      console.log(`Embedding user query using ${embeddings.model}...`);
+      const queryVector = await embeddings.embedQuery(userMessageContent);
+
+      // 3. Query Pinecone via HTTP API
+      console.log("Querying Pinecone via HTTP API...");
+      const queryUrl = `https://${pineconeIndexHost}/query`;
+      const topK = 4; // Number of results to retrieve
+
+      const queryResponse = await fetch(queryUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Api-Key': pineconeApiKey,
+        },
+        body: JSON.stringify({
+          vector: queryVector,
+          topK: topK,
+          includeMetadata: true, // Get metadata (like title, excerpt)
+          // namespace: "articles" // Optional: Add namespace if used during upsert
+        }),
+      });
+
+      if (!queryResponse.ok) {
+        const errorData = await queryResponse.json();
+        console.error("Pinecone HTTP Query Error:", errorData);
+        throw new Error(`Pinecone query failed: ${errorData.message || queryResponse.statusText}`);
+      }
+
+      const queryResult = await queryResponse.json();
+      console.log("Pinecone HTTP Query Result:", queryResult);
+
+      // 4. Format Context from Pinecone Results
+      const context = queryResult.matches
+        ?.map((match: any, i: number) => {
+          // Extract relevant info from metadata
+          const title = match.metadata?.title || 'Unknown Title';
+          const content = match.metadata?.excerpt || match.metadata?.pageContent || 'No content available'; // Adjust based on upserted metadata
+          return `Article Snippet ${i + 1} (Title: ${title}):\n${content}`;
+        })
+        .join("\n\n") || "No relevant articles found."; // Provide fallback
+
+      console.log("Formatted Context:\n", context);
+
+      // 5. Construct Prompt for LLM
+      const prompt = `You are an assistant knowledgeable about technology and development articles.
+Answer the user's question based *only* on the following context retrieved from relevant articles.
+If the context doesn't contain the answer, say "I couldn't find information about that in the available articles."
+Do not make up information. Be concise and helpful.
+
+Context:
+${context}
+
+Question:
+${userMessageContent}`;
+
+      console.log("Invoking LLM with prompt...");
+      // 6. Invoke LLM
+      const aiResponse = await llm.invoke(prompt);
+      const aiResponseContent = aiResponse.content; // Access content correctly
+
+      console.log("AI Response:", aiResponseContent);
+
+      // 7. Add AI message to state
+      setMessages(prev => [...prev, {
+        id: Date.now().toString() + '-ai',
+        content: typeof aiResponseContent === 'string' ? aiResponseContent : JSON.stringify(aiResponseContent), // Handle potential non-string content
+        sender: 'ai',
+        timestamp: new Date(),
+        status: 'delivered'
+      }]);
+
+    } catch (error: any) {
+      console.error("Error during RAG process:", error);
+      setAiError(`Sorry, I encountered an error trying to find an answer: ${error.message || 'Unknown error'}`);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString() + '-ai-error',
+        content: `Error: Could not process the request. ${error.message || ''}`,
+        sender: 'ai',
+        timestamp: new Date(),
+        status: 'error'
+      }]);
+    }
+  }, []);
+
+  // ... existing handleSubmit function (no changes needed here) ...
+
+  // ... existing return JSX (no changes needed here) ...
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">
       {/* Connection status */}
@@ -193,18 +217,28 @@ const ChatPage: React.FC = () => {
           </div>
         ))}
 
-        {/* Typing indicator */}
-        {isTyping && (
+        {/* Typing/Processing indicator */}
+        {isSending && messages[messages.length - 1]?.sender === 'user' && ( // Show indicator while waiting for AI
           <div className="flex justify-start">
             <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Thinking...</span>
               </div>
             </div>
           </div>
         )}
+
+        {/* AI Error Display */}
+        {aiError && (
+          <div className="flex justify-center">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative max-w-md text-sm" role="alert">
+              <strong className="font-bold">Error: </strong>
+              <span className="block sm:inline">{aiError}</span>
+            </div>
+          </div>
+        )}
+
 
         <div ref={messagesEndRef} />
       </div>
@@ -212,7 +246,7 @@ const ChatPage: React.FC = () => {
       {/* Message input */}
       <div className="border-t border-gray-200 bg-white">
         <form
-          onSubmit={handleSubmit}
+          onSubmit={() => getAIResponse(newMessage)}
           className="container mx-auto max-w-4xl px-4 py-3"
         >
           <div className="flex items-end gap-3">
@@ -220,31 +254,32 @@ const ChatPage: React.FC = () => {
               <TextareaAutosize
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
+                placeholder={isOnline ? "Ask about our articles..." : "You are offline"}
                 className="block w-full resize-none rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100"
                 maxRows={5}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit(e);
+                    getAIResponse(newMessage);
                   }
                 }}
+                disabled={!isOnline || isSending} // Disable input when offline or sending
               />
             </div>
 
             <button
               type="submit"
-              disabled={!newMessage.trim() || isSending}
+              disabled={!newMessage.trim() || isSending || !isOnline} // Disable button too
               className={`
                 flex-shrink-0 p-2.5 rounded-lg transition-colors
-                ${newMessage.trim() && !isSending
+                ${newMessage.trim() && !isSending && isOnline
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }
               `}
               aria-label="Send message"
             >
-              <Send className="w-5 h-5" />
+              {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </div>
         </form>
