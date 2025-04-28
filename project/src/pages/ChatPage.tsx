@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
-// ... existing Message type ...
+// Define the Message type
 type Message = {
   id: string;
   content: string;
@@ -16,14 +16,13 @@ type Message = {
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'error';
 };
 
-
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isSending, setIsSending] = useState(false);
+  const [isSending, setIsSending] = useState(false); // Ensure isSending state exists
   const [aiError, setAiError] = useState<string | null>(null);
 
   const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY;
@@ -37,6 +36,8 @@ const ChatPage: React.FC = () => {
   // --- RAG Logic using HTTP API ---
   const getAIResponse = useCallback(async (userMessageContent: string) => {
     setAiError(null);
+    setIsSending(true); // Set sending state to true at the beginning
+    // debugger; // Keep debugger if needed
     try {
       console.log("Starting RAG process via HTTP API for:", userMessageContent);
 
@@ -49,7 +50,8 @@ const ChatPage: React.FC = () => {
         apiKey: hfToken,
         model: 'sentence-transformers/all-roberta-large-v1' // Ensure this 1024-dim model is used
       });
-      const llm = new ChatGoogleGenerativeAI({ apiKey: googleApiKey, model: "chat-bison" }); // Specify a valid model name
+      // Try the "gemini-1.5-flash-latest" model name
+      const llm = new ChatGoogleGenerativeAI({ apiKey: googleApiKey, model: "gemini-1.5-flash-latest" });
 
       // 2. Embed the user query
       console.log(`Embedding user query using ${embeddings.model}...`);
@@ -133,12 +135,31 @@ ${userMessageContent}`;
         timestamp: new Date(),
         status: 'error'
       }]);
+    } finally {
+      setIsSending(false); // Set sending state to false when done (success or error)
     }
-  }, []);
+  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]);
 
-  // ... existing handleSubmit function (no changes needed here) ...
+  // Add a new handler for the form submission
+  const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Prevent default form submission (page refresh)
+    if (!newMessage.trim() || isSending || !isOnline) {
+      return; // Don't submit if input is empty, already sending, or offline
+    }
+    // Add user message to state immediately for better UX
+    const userMsg: Message = {
+        id: Date.now().toString() + '-user',
+        content: newMessage,
+        sender: 'user',
+        timestamp: new Date(),
+        status: 'sending' // Show as sending initially
+    };
+    setMessages(prev => [...prev, userMsg]);
+    getAIResponse(newMessage); // Call the AI response function
+    setNewMessage(''); // Clear the input field
+  }, [newMessage, isSending, isOnline, getAIResponse]);
 
-  // ... existing return JSX (no changes needed here) ...
+  // ... existing return JSX ...
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">
       {/* Connection status */}
@@ -232,8 +253,9 @@ ${userMessageContent}`;
 
       {/* Message input */}
       <div className="border-t border-gray-200 bg-white">
+        {/* Use the new handleSubmit function */}
         <form
-          onSubmit={() => getAIResponse(newMessage)}
+          onSubmit={handleSubmit}
           className="container mx-auto max-w-4xl px-4 py-3"
         >
           <div className="flex items-end gap-3">
@@ -247,7 +269,8 @@ ${userMessageContent}`;
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    getAIResponse(newMessage);
+                    // Trigger form submission programmatically which calls handleSubmit
+                    e.currentTarget.form?.requestSubmit();
                   }
                 }}
                 disabled={!isOnline || isSending} // Disable input when offline or sending
