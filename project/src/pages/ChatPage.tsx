@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Send, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useAuth } from '../contexts/AuthContext';
 // LangChain Embeddings and Google GenAI
@@ -13,14 +13,12 @@ type Message = {
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  status: 'sending' | 'sent' | 'delivered' | 'read' | 'error';
 };
 
 const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false); // Ensure isSending state exists
   const [aiError, setAiError] = useState<string | null>(null);
@@ -81,14 +79,11 @@ const ChatPage: React.FC = () => {
     }
   }, [messages, user, isHistoryLoaded]); // Depend on messages, user, and isHistoryLoaded
 
-  // ... existing online/offline handling ...
-  // ... existing scrollToBottom ...
-
   // --- RAG Logic using HTTP API ---
   const getAIResponse = useCallback(async (userMessageContent: string) => {
     setAiError(null);
-    setIsSending(true); // Set sending state to true at the beginning
-    // debugger; // Keep debugger if needed
+    setIsSending(true);
+
     try {
       console.log("Starting RAG process via HTTP API for:", userMessageContent);
 
@@ -174,29 +169,28 @@ ${userMessageContent}`;
         content: typeof aiResponseContent === 'string' ? aiResponseContent : JSON.stringify(aiResponseContent), // Handle potential non-string content
         sender: 'ai',
         timestamp: new Date(),
-        status: 'delivered'
       }]);
 
     } catch (error: any) {
       console.error("Error during RAG process:", error);
       setAiError(`Sorry, I encountered an error trying to find an answer: ${error.message || 'Unknown error'}`);
+      // Add AI error message
       setMessages(prev => [...prev, {
         id: Date.now().toString() + '-ai-error',
         content: `Error: Could not process the request. ${error.message || ''}`,
         sender: 'ai',
         timestamp: new Date(),
-        status: 'error'
       }]);
     } finally {
       setIsSending(false); // Set sending state to false when done (success or error)
     }
-  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]); // Removed 'messages' dependency if it was there
+  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]);
 
   // Add a new handler for the form submission
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); // Prevent default form submission (page refresh)
-    if (!newMessage.trim() || isSending || !isOnline) {
-      return; // Don't submit if input is empty, already sending, or offline
+    if (!newMessage.trim() || isSending) {
+      return; // Don't submit if input is empty or already sending
     }
     // Add user message to state immediately for better UX
     const userMsg: Message = {
@@ -204,12 +198,11 @@ ${userMessageContent}`;
       content: newMessage,
       sender: 'user',
       timestamp: new Date(),
-      status: 'sending' // Show as sending initially
     };
     setMessages(prev => [...prev, userMsg]);
     getAIResponse(newMessage); // Call the AI response function
     setNewMessage(''); // Clear the input field
-  }, [newMessage, isSending, isOnline, getAIResponse]);
+  }, [newMessage, isSending, getAIResponse]); // Removed isOnline from dependencies
 
   // --- Scroll to Bottom ---
   useEffect(() => {
@@ -219,27 +212,8 @@ ${userMessageContent}`;
     }
   }, [messages, isSending]); // Trigger scroll on message changes and sending state change
 
-  // ... existing return JSX ...
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">
-      {/* Connection status */}
-      <div className={`
-        flex items-center justify-center py-2 text-sm font-medium border-b
-        ${isOnline ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}
-      `}>
-        {isOnline ? (
-          <>
-            <Wifi className="w-4 h-4 mr-2" />
-            Connected
-          </>
-        ) : (
-          <>
-            <WifiOff className="w-4 h-4 mr-2" />
-            Offline
-          </>
-        )}
-      </div>
-
       {/* Messages container */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {messages.map((message) => (
@@ -267,19 +241,6 @@ ${userMessageContent}`;
                 ${message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'}
               `}>
                 <time>{format(message.timestamp, 'HH:mm')}</time>
-                {message.sender === 'user' && (
-                  <span className="flex items-center">
-                    {message.status === 'sending' && (
-                      <span className="text-[10px]">•••</span>
-                    )}
-                    {message.status === 'sent' && '✓'}
-                    {message.status === 'delivered' && '✓✓'}
-                    {message.status === 'read' && (
-                      <span className="text-blue-200">✓✓</span>
-                    )}
-                    {message.status === 'error' && '!'}
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -323,7 +284,7 @@ ${userMessageContent}`;
               <TextareaAutosize
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={isOnline ? "Ask about our articles..." : "You are offline"}
+                placeholder="Ask about our articles..."
                 className="block w-full resize-none rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:bg-gray-100"
                 maxRows={5}
                 onKeyDown={(e) => {
@@ -333,16 +294,16 @@ ${userMessageContent}`;
                     e.currentTarget.form?.requestSubmit();
                   }
                 }}
-                disabled={!isOnline || isSending} // Disable input when offline or sending
+                disabled={isSending} // Disable input when sending
               />
             </div>
 
             <button
               type="submit"
-              disabled={!newMessage.trim() || isSending || !isOnline} // Disable button too
+              disabled={!newMessage.trim() || isSending} // Disable button too
               className={`
                 flex-shrink-0 p-2.5 rounded-lg transition-colors
-                ${newMessage.trim() && !isSending && isOnline
+                ${newMessage.trim() && !isSending
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }
