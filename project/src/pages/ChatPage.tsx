@@ -24,11 +24,62 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false); // Ensure isSending state exists
   const [aiError, setAiError] = useState<string | null>(null);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false); // Track if history is loaded
 
   const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY;
   const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST;
   const googleApiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const hfToken = import.meta.env.VITE_HUGGINGFACE_API_KEY;
+
+  // --- Load Chat History ---
+  useEffect(() => {
+    if (user && !isHistoryLoaded) { // Only load if user exists and history hasn't been loaded yet
+      const storageKey = `chatHistory_${user.email}`; // Use user email for unique key
+      console.log(`Attempting to load chat history from localStorage key: ${storageKey}`);
+      try {
+        const storedMessages = localStorage.getItem(storageKey);
+        if (storedMessages) {
+          const parsedMessages: Message[] = JSON.parse(storedMessages).map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp), // Ensure timestamp is a Date object
+          }));
+          console.log(`Loaded ${parsedMessages.length} messages from localStorage.`);
+          setMessages(parsedMessages);
+        } else {
+          console.log("No previous chat history found in localStorage.");
+          // Optional: Add a default welcome message if no history
+          // setMessages([{ id: 'welcome', content: 'Hi! How can I help you today?', sender: 'ai', timestamp: new Date(), status: 'delivered' }]);
+        }
+      } catch (error) {
+        console.error("Failed to load or parse chat history from localStorage:", error);
+        localStorage.removeItem(storageKey); // Clear corrupted data
+      } finally {
+        setIsHistoryLoaded(true); // Mark history as loaded (or attempted)
+      }
+    }
+  }, [user, isHistoryLoaded]); // Depend on user and isHistoryLoaded
+
+  // --- Save Chat History ---
+  useEffect(() => {
+    // Only save if history has been loaded to prevent overwriting loaded history with initial empty state
+    // And only save if there are messages and user exists
+    if (isHistoryLoaded && messages.length > 0 && user) {
+      const storageKey = `chatHistory_${user.email}`;
+      console.log(`Saving ${messages.length} messages to localStorage key: ${storageKey}`);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+      } catch (error) {
+        console.error("Failed to save chat history to localStorage:", error);
+        // Handle potential storage quota errors here if necessary
+      }
+    }
+    // Also save when messages array becomes empty (e.g., user clears chat - if that feature exists)
+    else if (isHistoryLoaded && messages.length === 0 && user) {
+        const storageKey = `chatHistory_${user.email}`;
+        console.log(`Clearing chat history in localStorage for key: ${storageKey}`);
+        localStorage.removeItem(storageKey);
+    }
+  }, [messages, user, isHistoryLoaded]); // Depend on messages, user, and isHistoryLoaded
 
   // ... existing online/offline handling ...
   // ... existing scrollToBottom ...
@@ -139,7 +190,7 @@ ${userMessageContent}`;
     } finally {
       setIsSending(false); // Set sending state to false when done (success or error)
     }
-  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]);
+  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]); // Removed 'messages' dependency if it was there
 
   // Add a new handler for the form submission
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
@@ -159,6 +210,14 @@ ${userMessageContent}`;
     getAIResponse(newMessage); // Call the AI response function
     setNewMessage(''); // Clear the input field
   }, [newMessage, isSending, isOnline, getAIResponse]);
+
+  // --- Scroll to Bottom ---
+  useEffect(() => {
+    // Scroll to bottom when messages change or when AI starts/stops sending
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isSending]); // Trigger scroll on message changes and sending state change
 
   // ... existing return JSX ...
   return (
