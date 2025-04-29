@@ -48,7 +48,7 @@ const ChatPage: React.FC = () => {
 
       const embeddings = new HuggingFaceInferenceEmbeddings({
         apiKey: hfToken,
-        model: 'sentence-transformers/all-roberta-large-v1' // Ensure this 1024-dim model is used
+        model: 'sentence-transformers/all-mpnet-base-v2' // Use this model for 768 dimensions
       });
       // Try the "gemini-1.5-flash-latest" model name
       const llm = new ChatGoogleGenerativeAI({ apiKey: googleApiKey, model: "gemini-1.5-flash-latest" });

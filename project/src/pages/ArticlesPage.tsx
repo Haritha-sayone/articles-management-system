@@ -159,10 +159,10 @@ const ArticlesPage: React.FC = () => {
             throw new Error("Pinecone API Key or Index Host URL missing.");
           }
 
-          // Initialize Embedding Model (Specify model with 1024 dimensions)
+          // Initialize Embedding Model (Matching Pinecone index dimension: 768)
           const embeddings = new HuggingFaceInferenceEmbeddings({
             apiKey: hfToken,
-            model: 'sentence-transformers/all-roberta-large-v1' // Ensure this 1024-dim model is used
+            model: 'sentence-transformers/all-mpnet-base-v2' // Use this model for 768 dimensions
           });
 
           // Prepare Documents
