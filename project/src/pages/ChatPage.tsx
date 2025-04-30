@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { Send, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useAuth } from '../contexts/AuthContext';
@@ -256,56 +256,73 @@ ${userMessageContent}`; // The user's *latest* question
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">
       {/* Messages container */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`
-                relative
-                max-w-[85%] sm:max-w-[75%] md:max-w-[65%] lg:max-w-[55%]
-                rounded-2xl px-4 py-3 group
-                ${message.sender === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
-                }
-              `}
-            >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {message.content}
-              </p>
-              <div className={`
-                flex items-center mt-1.5 text-[11px] leading-none
-                ${message.sender === 'user' ? 'text-blue-100 justify-end' : 'text-gray-400 justify-between'}
-              `}>
-                {/* Timestamp */}
-                <time>{format(message.timestamp, 'HH:mm')}</time>
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4"> {/* Adjusted space-y */}
+        {messages.map((message, index) => {
+          const previousMessage = messages[index - 1];
+          // Check if it's the first message or if the date is different from the previous one
+          const showDateSeparator = index === 0 || (previousMessage && !isSameDay(message.timestamp, previousMessage.timestamp));
 
-                {/* Feedback Buttons for AI messages */}
-                {message.sender === 'ai' && (
-                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                      onClick={() => handleFeedback(message.id, 'upvoted')}
-                      className={`p-0.5 rounded hover:bg-gray-200 ${message.feedback === 'upvoted' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}`}
-                      aria-label="Upvote"
-                    >
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleFeedback(message.id, 'downvoted')}
-                      className={`p-0.5 rounded hover:bg-gray-200 ${message.feedback === 'downvoted' ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
-                      aria-label="Downvote"
-                    >
-                      <ThumbsDown className="w-3.5 h-3.5" />
-                    </button>
+          return (
+            <React.Fragment key={message.id}>
+              {/* Date Separator */}
+              {showDateSeparator && (
+                <div className="flex justify-center items-center my-4">
+                  <span className="px-3 py-1 bg-gray-200 text-gray-600 text-xs font-medium rounded-full">
+                    {format(message.timestamp, 'MMMM d, yyyy')}
+                  </span>
+                </div>
+              )}
+
+              {/* Message Bubble */}
+              <div
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`
+                    relative
+                    max-w-[85%] sm:max-w-[75%] md:max-w-[65%] lg:max-w-[55%]
+                    rounded-2xl px-4 py-3 group
+                    ${message.sender === 'user'
+                      ? 'bg-blue-600 text-white rounded-br-sm'
+                      : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
+                    }
+                  `}
+                >
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                    {message.content}
+                  </p>
+                  <div className={`
+                    flex items-center mt-1.5 text-[11px] leading-none
+                    ${message.sender === 'user' ? 'text-blue-100 justify-end' : 'text-gray-400 justify-between'}
+                  `}>
+                    {/* Timestamp */}
+                    <time>{format(message.timestamp, 'HH:mm')}</time>
+
+                    {/* Feedback Buttons for AI messages */}
+                    {message.sender === 'ai' && (
+                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button
+                          onClick={() => handleFeedback(message.id, 'upvoted')}
+                          className={`p-0.5 rounded hover:bg-gray-200 ${message.feedback === 'upvoted' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}`}
+                          aria-label="Upvote"
+                        >
+                          <ThumbsUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleFeedback(message.id, 'downvoted')}
+                          className={`p-0.5 rounded hover:bg-gray-200 ${message.feedback === 'downvoted' ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                          aria-label="Downvote"
+                        >
+                          <ThumbsDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            </React.Fragment>
+          );
+        })}
 
         {/* Typing/Processing indicator */}
         {isSending && messages[messages.length - 1]?.sender === 'user' && ( // Show indicator while waiting for AI
