@@ -84,6 +84,11 @@ const ChatPage: React.FC = () => {
     setAiError(null);
     setIsSending(true);
 
+    // Get current messages state for history context
+    // Note: This captures state *before* this async function might fully execute,
+    // but it's the simplest way to get recent history. Includes the latest user message.
+    const currentMessages = messages;
+
     try {
       console.log("Starting RAG process via HTTP API for:", userMessageContent);
 
@@ -131,39 +136,59 @@ const ChatPage: React.FC = () => {
       const queryResult = await queryResponse.json();
       console.log("Pinecone HTTP Query Result:", queryResult);
 
-      // 4. Format Context from Pinecone Results
+      // 4. Format Context from Pinecone Results (Include Author)
       const context = queryResult.matches
         ?.map((match: any, i: number) => {
-          // Extract relevant info from metadata
           const title = match.metadata?.title || 'Unknown Title';
-          // *** PRIORITIZE FULL CONTENT FROM METADATA ***
-          const content = match.metadata?.content || match.metadata?.excerpt || 'No content available'; // Use full content if available, fallback to excerpt
-          return `Article Snippet ${i + 1} (Title: ${title}):\n${content}`; // Now includes full content
+          const author = match.metadata?.author; // Extract author
+          const content = match.metadata?.content || match.metadata?.excerpt || 'No content available';
+          // Include author if available
+          const authorString = author ? ` (Author: ${author})` : '';
+          return `Article Snippet ${i + 1} (Title: ${title}${authorString}):\n${content}`;
         })
         .join("\n\n") || "No relevant articles found."; // Provide fallback
 
       console.log("Formatted Context:\n", context); // This context will now be more detailed
 
-      // 5. Construct Prompt for LLM
+      // 5. Format Recent Chat History
+      const historyWindow = 4; // Number of past messages to include
+      const recentHistory = currentMessages
+        .slice(-historyWindow) // Get last N messages
+        .map(msg => `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.content}`)
+        .join("\n");
+
+      console.log("Formatted History:\n", recentHistory);
+
+      // 6. Construct Prompt for LLM (Include History - REVISED INSTRUCTIONS)
       const prompt = `You are an assistant knowledgeable about technology and development articles.
-Answer the user's question based *only* on the following context retrieved from relevant articles.
-If the context doesn't contain the answer, say "I couldn't find information about that in the available articles."
-Do not make up information. Be concise and helpful.
+Your goal is to answer the user's question based on the provided Chat History and the Context from relevant articles below.
+
+Instructions:
+1.  **Prioritize Chat History for Follow-ups:** If the user's 'Question' is short (e.g., one or two words like "why?", "reasons?", "tell me more") or seems to directly refer to the previous turn, first look at the immediately preceding messages in the 'Chat History' to understand the topic. Answer based on that history if possible.
+2.  **Use Context for New Topics or Details:** If the 'Question' introduces a new topic or asks for specific details not covered in the recent 'Chat History', use the retrieved 'Context' primarily.
+3.  **Combine History and Context:** If the question relates to the history but requires more detail, use both the 'Chat History' to understand the subject and the 'Context' to find relevant information.
+4.  **Base Answers ONLY on Provided Information:** Strictly base your answer *only* on the information found in the 'Chat History' and the 'Context'.
+5.  **Handle Missing Information:** If the answer cannot be found in either the 'Chat History' or the 'Context', respond with "I couldn't find information about that in the chat history or the available articles."
+6.  **Metadata:** If asked about metadata like an author, look for it in the 'Context' snippets (e.g., "(Author: John Doe)").
+7.  **Conciseness:** Be concise and helpful. Do not make up information.
+
+Chat History:
+${recentHistory}
 
 Context:
 ${context}
 
 Question:
-${userMessageContent}`;
+${userMessageContent}`; // The user's *latest* question
 
       console.log("Invoking LLM with prompt...");
-      // 6. Invoke LLM
+      // 7. Invoke LLM
       const aiResponse = await llm.invoke(prompt);
       const aiResponseContent = aiResponse.content; // Access content correctly
 
       console.log("AI Response:", aiResponseContent);
 
-      // 7. Add AI message to state
+      // 8. Add AI message to state
       setMessages(prev => [...prev, {
         id: Date.now().toString() + '-ai',
         content: typeof aiResponseContent === 'string' ? aiResponseContent : JSON.stringify(aiResponseContent), // Handle potential non-string content
@@ -184,7 +209,8 @@ ${userMessageContent}`;
     } finally {
       setIsSending(false); // Set sending state to false when done (success or error)
     }
-  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]);
+    // Pass `messages` state as a dependency to ensure useCallback updates when messages change
+  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken, messages]);
 
   // Add a new handler for the form submission
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
@@ -199,10 +225,11 @@ ${userMessageContent}`;
       sender: 'user',
       timestamp: new Date(),
     };
+    // Add user message first, then call getAIResponse which will use the updated messages state
     setMessages(prev => [...prev, userMsg]);
     getAIResponse(newMessage); // Call the AI response function
     setNewMessage(''); // Clear the input field
-  }, [newMessage, isSending, getAIResponse]); // Removed isOnline from dependencies
+  }, [newMessage, isSending, getAIResponse]); // Keep dependencies minimal
 
   // --- Scroll to Bottom ---
   useEffect(() => {
