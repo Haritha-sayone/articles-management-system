@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { useAuth } from '../contexts/AuthContext';
 // LangChain Embeddings and Google GenAI
@@ -13,6 +13,7 @@ type Message = {
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  feedback?: 'upvoted' | 'downvoted' | null; // Add optional feedback property
 };
 
 const ChatPage: React.FC = () => {
@@ -22,7 +23,7 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false); // Ensure isSending state exists
   const [aiError, setAiError] = useState<string | null>(null);
-  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false); // Track if history is loaded
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
 
   const pineconeApiKey = import.meta.env.VITE_PINECONE_API_KEY;
   const pineconeIndexHost = import.meta.env.VITE_PINECONE_INDEX_HOST;
@@ -231,6 +232,19 @@ ${userMessageContent}`; // The user's *latest* question
     setNewMessage(''); // Clear the input field
   }, [newMessage, isSending, getAIResponse]); // Keep dependencies minimal
 
+  // --- Handle Feedback ---
+  const handleFeedback = useCallback((messageId: string, feedback: 'upvoted' | 'downvoted') => {
+    setMessages(prevMessages =>
+      prevMessages.map(msg =>
+        msg.id === messageId
+          ? { ...msg, feedback: msg.feedback === feedback ? null : feedback } // Toggle feedback or set new
+          : msg
+      )
+    );
+    // Note: The change in `messages` state will trigger the save useEffect
+  }, []);
+
+
   // --- Scroll to Bottom ---
   useEffect(() => {
     // Scroll to bottom when messages change or when AI starts/stops sending
@@ -252,7 +266,7 @@ ${userMessageContent}`; // The user's *latest* question
               className={`
                 relative
                 max-w-[85%] sm:max-w-[75%] md:max-w-[65%] lg:max-w-[55%]
-                rounded-2xl px-4 py-3
+                rounded-2xl px-4 py-3 group
                 ${message.sender === 'user'
                   ? 'bg-blue-600 text-white rounded-br-sm'
                   : 'bg-white text-gray-900 rounded-bl-sm shadow-sm'
@@ -263,11 +277,31 @@ ${userMessageContent}`; // The user's *latest* question
                 {message.content}
               </p>
               <div className={`
-                flex items-center justify-end gap-1.5 mt-1
-                text-[11px] leading-none
-                ${message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'}
+                flex items-center mt-1.5 text-[11px] leading-none
+                ${message.sender === 'user' ? 'text-blue-100 justify-end' : 'text-gray-400 justify-between'}
               `}>
+                {/* Timestamp */}
                 <time>{format(message.timestamp, 'HH:mm')}</time>
+
+                {/* Feedback Buttons for AI messages */}
+                {message.sender === 'ai' && (
+                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                      onClick={() => handleFeedback(message.id, 'upvoted')}
+                      className={`p-0.5 rounded hover:bg-gray-200 ${message.feedback === 'upvoted' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'}`}
+                      aria-label="Upvote"
+                    >
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleFeedback(message.id, 'downvoted')}
+                      className={`p-0.5 rounded hover:bg-gray-200 ${message.feedback === 'downvoted' ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                      aria-label="Downvote"
+                    >
+                      <ThumbsDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
