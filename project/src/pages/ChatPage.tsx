@@ -21,7 +21,7 @@ const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isSending, setIsSending] = useState(false); // Ensure isSending state exists
+  const [isSending, setIsSending] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
 
@@ -47,7 +47,7 @@ const ChatPage: React.FC = () => {
         } else {
           console.log("No previous chat history found in localStorage.");
           // Optional: Add a default welcome message if no history
-          // setMessages([{ id: 'welcome', content: 'Hi! How can I help you today?', sender: 'ai', timestamp: new Date(), status: 'delivered' }]);
+          setMessages([{ id: 'welcome', content: 'Hi! How can I help you today?', sender: 'ai', timestamp: new Date()}]);
         }
       } catch (error) {
         console.error("Failed to load or parse chat history from localStorage:", error);
