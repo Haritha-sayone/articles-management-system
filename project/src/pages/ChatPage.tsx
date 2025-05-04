@@ -81,14 +81,14 @@ const ChatPage: React.FC = () => {
   }, [messages, user, isHistoryLoaded]); // Depend on messages, user, and isHistoryLoaded
 
   // --- RAG Logic using HTTP API ---
-  const getAIResponse = useCallback(async (userMessageContent: string) => {
+  const getAIResponse = useCallback(async (userMessageContent: string, currentMessages: Message[]) => { // Add currentMessages parameter
     setAiError(null);
     setIsSending(true);
 
-    // Get current messages state for history context
+    // Get current messages state for history context - PASSED AS ARGUMENT NOW
     // Note: This captures state *before* this async function might fully execute,
     // but it's the simplest way to get recent history. Includes the latest user message.
-    const currentMessages = messages;
+    // const currentMessages = messages; // REMOVED
 
     try {
       console.log("Starting RAG process via HTTP API for:", userMessageContent);
@@ -153,7 +153,7 @@ const ChatPage: React.FC = () => {
 
       // 5. Format Recent Chat History
       const historyWindow = 4; // Number of past messages to include
-      const recentHistory = currentMessages
+      const recentHistory = currentMessages // USE ARGUMENT
         .slice(-historyWindow) // Get last N messages
         .map(msg => `${msg.sender === 'user' ? 'User' : 'AI'}: ${msg.content}`)
         .join("\n");
@@ -210,8 +210,8 @@ ${userMessageContent}`; // The user's *latest* question
     } finally {
       setIsSending(false); // Set sending state to false when done (success or error)
     }
-    // Pass `messages` state as a dependency to ensure useCallback updates when messages change
-  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken, messages]);
+    // REMOVE `messages` from dependency array
+  }, [pineconeApiKey, pineconeIndexHost, googleApiKey, hfToken]); // Removed 'messages'
 
   // Add a new handler for the form submission
   const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
@@ -226,9 +226,14 @@ ${userMessageContent}`; // The user's *latest* question
       sender: 'user',
       timestamp: new Date(),
     };
-    // Add user message first, then call getAIResponse which will use the updated messages state
-    setMessages(prev => [...prev, userMsg]);
-    getAIResponse(newMessage); // Call the AI response function
+    // Use functional update to get the latest messages state
+    setMessages(prevMessages => {
+      const updatedMessages = [...prevMessages, userMsg];
+      // Call getAIResponse with the latest messages state
+      getAIResponse(newMessage, updatedMessages);
+      return updatedMessages; // Return the new state
+    });
+    // getAIResponse(newMessage); // REMOVED direct call
     setNewMessage(''); // Clear the input field
   }, [newMessage, isSending, getAIResponse]); // Keep dependencies minimal
 
@@ -251,7 +256,8 @@ ${userMessageContent}`; // The user's *latest* question
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isSending]); // Trigger scroll on message changes and sending state change
+    // Depend on the *number* of messages and the sending state
+  }, [messages.length, isSending]); // Trigger scroll only when message count changes or sending state changes
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">

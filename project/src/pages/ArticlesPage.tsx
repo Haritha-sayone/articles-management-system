@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -99,6 +99,32 @@ const ArticlesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // State for search query
+  const [selectedCategory, setSelectedCategory] = useState(''); // State for selected category
+
+  // Derive unique categories from articles
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set<string>();
+    articles.forEach(article => {
+      if (article.category) {
+        uniqueCategories.add(article.category);
+      }
+    });
+    return ['All Categories', ...Array.from(uniqueCategories)]; // Add 'All Categories' option
+  }, [articles]);
+
+  // Filter articles based on search query and selected category
+  const filteredArticles = useMemo(() => {
+    return articles.filter(article => {
+      const matchesCategory = selectedCategory === 'All Categories' || !selectedCategory || article.category === selectedCategory;
+      const matchesSearch = !searchQuery ||
+        article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (article.content && article.content.toLowerCase().includes(searchQuery.toLowerCase())); // Search in content too
+      return matchesCategory && matchesSearch;
+    });
+  }, [articles, searchQuery, selectedCategory]);
+
 
   useEffect(() => {
     // --- Helper function for Pinecone HTTP Upsert ---
@@ -146,7 +172,7 @@ const ArticlesPage: React.FC = () => {
         const response = await fetch(`http://localhost:3001/articles`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: Article[] = await response.json();
-        setArticles(data);
+        setArticles(data); // Set original articles
 
         // 2. Embed and Store via Pinecone HTTP API (only if not already done)
         const embeddingDoneFlag = localStorage.getItem('articlesEmbeddedHttp');
@@ -235,6 +261,29 @@ const ArticlesPage: React.FC = () => {
           <p className="mt-2 text-gray-600">
             Browse our latest articles on technology and development
           </p>
+
+          {/* Search and Filter Controls */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-4">
+            <input
+              type="text"
+              placeholder="Search articles..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading || isProcessing || categories.length <= 1} // Disable if loading or only 'All Categories' exists
+            >
+              {categories.map(category => (
+                <option key={category} value={category === 'All Categories' ? '' : category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Loading State */}
@@ -266,18 +315,20 @@ const ArticlesPage: React.FC = () => {
         {/* List Display */}
         {!isLoading && !error && !isProcessing && ( // Only show list when not loading, no error, and not processing
           <div className="flex-grow"> {/* Container for the list to take remaining space */}
-            {articles.length > 0 ? (
+            {filteredArticles.length > 0 ? (
               <List
-                height={window.innerHeight - 250} // Example: Adjust based on actual surrounding element heights
-                itemCount={articles.length}
-                itemSize={ITEM_SIZE} // Use the estimated item size
-                width="100%" // Take full width of the container
-                itemData={articles} // Pass articles data to the Row component
+                height={window.innerHeight - 300} // Adjust height considering the new filter controls
+                itemCount={filteredArticles.length} // Use filteredArticles length
+                itemSize={ITEM_SIZE}
+                width="100%"
+                itemData={filteredArticles} // Pass filteredArticles data
               >
                 {ArticleRow}
               </List>
             ) : (
-              <p className="text-center text-gray-500 py-10">No articles found.</p>
+              <p className="text-center text-gray-500 py-10">
+                {articles.length > 0 ? 'No articles match your search or filter.' : 'No articles found.'}
+              </p> // Updated message
             )}
           </div>
         )}
